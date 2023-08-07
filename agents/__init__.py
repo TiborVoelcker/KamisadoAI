@@ -3,12 +3,11 @@
   Created on 14.07.2023
 """
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
 
-from game import Kamisado, Tower
+from game import Kamisado
 
 
-class Agent(ABC):
+class Model(ABC):
     """An agent to play Kamisado.
 
     Props:
@@ -16,19 +15,13 @@ class Agent(ABC):
         game: The game the agent plays.
     """
 
-    def __init__(self, player: str, game: Kamisado):
+    def __init__(self, env: Kamisado):
         """Initialize the class."""
-        self.player = player
-        self.game = game
+        self.env = env
 
     @abstractmethod
-    def choose_tower(self, towers: Sequence[Tower]) -> Tower:
-        """Chooses the tower to start the game with."""
-        pass
-
-    @abstractmethod
-    def choose_action(self, actions: Sequence[tuple[int, int]]) -> tuple[int, int]:
-        """Chooses an action out of a list of possible actions."""
+    def predict(self, obs) -> tuple[tuple[int, int], None]:
+        """Choose an action based on a observation."""
         pass
 
 

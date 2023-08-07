@@ -2,36 +2,26 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 14.07.2023
 """
-import random
-from collections.abc import Sequence
-
-from agents import Agent
-from game import Tower
+from agents import Model
 
 
-class RandomAgent(Agent):
+class RandomAgent(Model):
     """An agent that plays randomly."""
 
-    def choose_tower(self, towers: Sequence[Tower]) -> Tower:
-        if self.player != "black":
-            raise RuntimeError("White was asked to begin the game!")
-        return random.choice(towers)
-
-    def choose_action(self, actions: Sequence[tuple[int, int]]) -> tuple[int, int]:
-        return random.choice(actions)
+    def predict(self, obs):
+        actions = self.env.valid_actions(self.env.next_tower)
+        return self.env.np_random.choice(actions), None
 
 
-class LookForWinAgent(Agent):
+class LookForWinAgent(Model):
     """An agent that plays randomly, but will make the winning move if it can."""
 
-    def choose_tower(self, towers: Sequence[Tower]) -> Tower:
-        if self.player != "black":
-            raise RuntimeError("White was asked to begin the game!")
-        return random.choice(towers)
+    def predict(self, obs):
+        actions = self.env.valid_actions(self.env.next_tower)
+        if self.env.next_tower is not None:
+            goal = 7 if self.env.next_tower < 0 else 0
+            winning = actions[actions[:, 0] == goal]
+            if len(winning) != 0:
+                return winning[0], None
 
-    def choose_action(self, actions: Sequence[tuple[int, int]]) -> tuple[int, int]:
-        goal = 7 if self.player == "black" else 0
-        for x, y in actions:
-            if y == goal:
-                return (x, y)
-        return random.choice(actions)
+        return self.env.np_random.choice(actions), None
