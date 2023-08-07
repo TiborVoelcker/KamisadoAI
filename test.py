@@ -2,14 +2,14 @@ import os
 import time
 import uuid
 
-from stable_baselines3 import PPO
+from sb3_contrib.ppo_mask.policies import MlpPolicy
+from sb3_contrib.ppo_mask.ppo_mask import MaskablePPO as PPO
 from stable_baselines3.common import results_plotter
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import plot_results
-from stable_baselines3.ppo.policies import MlpPolicy
 
 from game import Kamisado
 

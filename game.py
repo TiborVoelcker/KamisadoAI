@@ -185,7 +185,9 @@ class Kamisado(gym.Env):
                 towers or not. Defaults to True.
         """
         self.observation_space = spaces.MultiDiscrete([2] + [17] * 64)
-        self.action_space = spaces.Box(0, 7, shape=(2,), dtype=int)
+        # self.action_space = spaces.Box(0, 7, shape=(2,), dtype=int)
+        self.action_space = spaces.MultiDiscrete([2] * 64)
+        self.possible_actions = list(product(range(8), range(8)))
 
         self.__render_mode = None
         self.towers = TowerTuple(self)
@@ -306,6 +308,17 @@ class Kamisado(gym.Env):
     def action_is_valid(self, tower, action):
         return any(np.equal(self.valid_actions(tower), action).all(1))
 
+    def action_masks(self):
+        mask = np.zeros((8, 8, 2), dtype=bool)
+        mask[:, :, 0] = True
+        for action in self.valid_actions(self.next_tower):
+            mask[int(action[1]), int(action[0]), :] = [False, True]
+
+        return mask.flatten()
+
+    def convert_action(self, action):
+        return np.flip(np.argwhere(action.reshape((8, 8)))[0])
+
     def step(self, action: tuple[int, int]):
         """Play one step in the game.
 
@@ -321,6 +334,8 @@ class Kamisado(gym.Env):
             raise RuntimeError("Game already stopped. Use `Kamisado.reset()` to reset the game.")
 
         tower = self.next_tower
+
+        action = self.convert_action(action)
 
         # validate action
         if not self.action_is_valid(tower, action):
@@ -390,7 +405,15 @@ if __name__ == "__main__":
     check_env(env, skip_render_check=False)
 
     env.render_mode = "human"
-    env.step((7, 0))
-    env.step((7, 1))
-    env.step((0, 2))
-    env.step((0, 0))
+    action = np.zeros((8, 8), dtype=int)
+    action[0, 7] = 1
+    env.step(action.flatten())
+    action = np.zeros((8, 8), dtype=int)
+    action[1, 7] = 1
+    env.step(action.flatten())
+    action = np.zeros((8, 8), dtype=int)
+    action[7, 7] = 1
+    env.step(action.flatten())
+    action = np.zeros((8, 8), dtype=int)
+    action[0, 0] = 1
+    env.step(action.flatten())
