@@ -3,12 +3,16 @@
   Created on 13.07.2023
 """
 from functools import partial
+from itertools import product
 from typing import overload
 
+import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
+from gymnasium import spaces
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Circle, RegularPolygon
+from stable_baselines3.common.env_checker import check_env
 
 Hexagon = partial(RegularPolygon, numVertices=6, orientation=np.pi / 2)
 COLORS = ["orange", "blue", "purple", "pink", "yellow", "red", "green", "brown"]
@@ -57,7 +61,7 @@ class Tower:
     def xy(self, value: tuple[int, int]):
         """Set the tower's coordinates. Also renders its new position."""
         self.__xy = value
-        if self.game.render:
+        if self.game.render_mode == "human":
             self.render()
 
     @property
@@ -76,6 +80,7 @@ class Tower:
         hex = ax.add_patch(Hexagon(self.xy, radius=0.4, color=self.player))
         circ = ax.add_patch(Circle(self.xy, radius=0.2, color=self.color))
         self._patches = [hex, circ]
+        plt.draw()
 
 
 class TowerTuple(tuple[Tower, ...]):
@@ -96,6 +101,8 @@ class TowerTuple(tuple[Tower, ...]):
             for player in ["black", "white"]:
                 t = Tower(player=player, color=color, game=game)
                 towers.append(t)
+
+        cls.game = game
         return super().__new__(TowerTuple, towers)
 
     @overload
@@ -106,21 +113,48 @@ class TowerTuple(tuple[Tower, ...]):
     def __getitem__(self, key: str) -> tuple[Tower, ...]:
         ...
 
-    def __getitem__(self, key: tuple[str, str] | str) -> Tower | tuple[Tower, ...]:
+    @overload
+    def __getitem__(self, key: tuple[int, int]) -> Tower | None:
+        ...
+
+    def __getitem__(
+        self, key: tuple[str, str] | tuple[int, int] | str
+    ) -> Tower | tuple[Tower, ...] | None:
         """Get the towers of one player, of one color, or one specific tower."""
-        if isinstance(key, tuple) and key[0] in ["black", "white"] and key[1] in COLORS:
+        if isinstance(key, tuple | np.ndarray):
+            # select specific tower by player and color
+            if key[0] in ["black", "white"] and key[1] in COLORS:
+                for t in self:
+                    if t.player == key[0] and t.color == key[1]:
+                        return t
+            # select specific tower by coordinate
             for t in self:
-                if t.player == key[0] and t.color == key[1]:
+                if np.array_equal(t.xy, key):
                     return t
-        if key in ["black", "white"]:
-            return tuple(t for t in self if t.player == key)
-        if key in COLORS:
-            return tuple(t for t in self if t.color == key)
+            return None
+        else:
+            if key in ["black", "white"]:
+                return tuple(t for t in self if t.player == key)
+            if key in COLORS:
+                return tuple(t for t in self if t.color == key)
 
         raise KeyError(f"Key must be a player or color or both, not '{key}'")
 
+    def render_all(self):
+        if self.game.render_mode == "human":
+            for t in self:
+                t.render()
 
-class Kamisado:
+        board = np.zeros((8, 8))
+        for tower in self:
+            num = COLORS.index(tower.color) + 1
+            num += 8 if tower.player == "white" else 0
+            board[*np.flip(tower.xy)] = num
+
+        return board
+
+
+class Kamisado(gym.Env):
     """The game Kamisado.
 
     Props:
@@ -130,6 +164,7 @@ class Kamisado:
         stopped: The reason why the game stopped, or `False`.
     """
 
+    INVALID_ACTION_REWARD = -100
     board_colors = [
         [0, 1, 2, 3, 4, 5, 6, 7],
         [5, 0, 3, 6, 1, 4, 7, 2],
@@ -140,28 +175,61 @@ class Kamisado:
         [2, 7, 4, 1, 6, 3, 0, 5],
         [7, 6, 5, 4, 3, 2, 1, 0],
     ]
+    metadata = {"render_modes": ["human"], "render_fps": 4}
 
-    def __init__(self, render=True):
+    def __init__(self, render_mode=None):
         """Initialize the class.
 
         Args:
             render (bool, optional): Whether to render the board and the
                 towers or not. Defaults to True.
         """
-        self.render = render
-        self.winner = ""
-        self.stopped = False
-        if self.render:
-            self.render_board()
+        self.observation_space = spaces.MultiDiscrete([2] + [17] * 64)
+        self.action_space = spaces.Box(0, 7, shape=(2,), dtype=int)
 
+        self.__render_mode = None
         self.towers = TowerTuple(self)
 
-    def reset(self):
+        self.render_mode = render_mode
+        self.reset()
+
+    def close(self):
+        plt.close("all")
+
+    @property
+    def render_mode(self):
+        return self.__render_mode
+
+    @render_mode.setter
+    def render_mode(self, mode):
+        if mode is None or mode in self.metadata["render_modes"]:
+            self.__render_mode = mode
+            if mode == "human":
+                self.render_board()
+                self.towers.render_all()
+        else:
+            raise ValueError(
+                f"Render mode must be one of the following: '{self.metadata['render_modes']}'\nNot {mode}"
+            )
+
+    def _get_obs(self):
+        started = 0 if self.next_tower is None else 1
+        board = self.board
+        board[board < 0] += 17
+        return np.concatenate(([started], board.flatten()))
+
+    def _get_info(self):
+        return {}
+
+    def reset(self, seed=None):
         """Reset the game state."""
         for tower in self.towers:
             tower.reset()
+        self.next_tower = None
         self.winner = ""
         self.stopped = False
+
+        return self._get_obs(), self._get_info()
 
     def render_board(self):
         """Render the board."""
@@ -176,7 +244,7 @@ class Kamisado:
         # check if leaving board
         while 0 <= x <= 7 and 0 <= y <= 7:
             # other tower in the way
-            if any(t.xy == (x, y) for t in self.towers):
+            if self.towers[x, y] is not None:
                 break
             actions.append((x, y))
 
@@ -184,8 +252,21 @@ class Kamisado:
 
         return actions
 
-    def get_actions(self, tower: Tower) -> list[tuple[int, int]]:
+    @property
+    def board(self):
+        board = np.zeros((8, 8), dtype=int)
+        for tower in self.towers:
+            num = COLORS.index(tower.color) + 1
+            player = -1 if tower.player == "black" else 1
+            board[*np.flip(tower.xy)] = num * player
+
+        return board
+
+    def valid_actions(self, tower: Tower | None) -> list[tuple[int, int]]:
         """Get all possible actions for one tower."""
+        if tower is None:
+            return np.dstack((np.arange(8), np.zeros(8)))[0]
+
         if self.tower_is_blocked(tower):
             return [tower.xy]
 
@@ -206,13 +287,13 @@ class Kamisado:
         x, y = tower.xy
         dy = +1 if tower.player == "black" else -1
         # nothing in front?
-        if all(t.xy != (x, y + dy) for t in self.towers):
+        if self.towers[x, y + dy] is None:
             return False
         # nothing to the right?
-        if x + 1 <= 7 and all(t.xy != (x + 1, y + dy) for t in self.towers):
+        if self.towers[x + 1, y + dy] is None and x + 1 <= 7:
             return False
         # nothing to the left?
-        if x - 1 >= 0 and all(t.xy != (x - 1, y + dy) for t in self.towers):
+        if self.towers[x - 1, y + dy] is None and x - 1 >= 0:
             return False
         return True
 
@@ -222,7 +303,10 @@ class Kamisado:
         color_idx = self.board_colors[y][x]
         return COLORS[color_idx]
 
-    def step(self, tower: Tower, action: tuple[int, int]) -> Tower:
+    def action_is_valid(self, tower, action):
+        return any(np.equal(self.valid_actions(tower), action).all(1))
+
+    def step(self, action: tuple[int, int]):
         """Play one step in the game.
 
         Args:
@@ -232,24 +316,81 @@ class Kamisado:
         Returns:
             Tower: The next tower to move.
         """
+        # check if game already stopped
+        if self.stopped:
+            raise RuntimeError("Game already stopped. Use `Kamisado.reset()` to reset the game.")
+
+        tower = self.next_tower
+
+        # validate action
+        if not self.action_is_valid(tower, action):
+            return (
+                self._get_obs(),
+                self.INVALID_ACTION_REWARD,
+                False,
+                True,
+                self._get_info(),
+            )
+
+        if tower is None:
+            self.next_tower = self.towers[action]
+            return (
+                self._get_obs(),
+                0,
+                False,
+                False,
+                self._get_info(),
+            )
+
         # move tower
         tower.xy = action
+
+        if self.render_mode == "human":
+            plt.pause(1 / self.metadata["render_fps"])
+
         # check if game was won
         if tower.is_winning:
             self.winner = tower.player
             self.stopped = "reaching baseline"
+            return (
+                self._get_obs(),
+                1,
+                False,
+                True,
+                self._get_info(),
+            )
+
         # get next tower
         next_player = "black" if tower.player == "white" else "white"
-        next_tower = self.towers[next_player, self.color_below_tower(tower)]
+        self.next_tower = self.towers[next_player, self.color_below_tower(tower)]
+
         # check for deadlock
-        if self.tower_is_blocked(tower) and self.tower_is_blocked(next_tower):
+        if self.tower_is_blocked(tower) and self.tower_is_blocked(self.next_tower):
             self.winner = "black" if tower.player == "white" else "white"
             self.stopped = "deadlock"
+            return (
+                self._get_obs(),
+                -1,
+                False,
+                True,
+                self._get_info(),
+            )
 
-        return next_tower
+        return (
+            self._get_obs(),
+            0,
+            False,
+            False,
+            self._get_info(),
+        )
 
 
 if __name__ == "__main__":
-    game = Kamisado()
+    env = Kamisado()
+    check_env(env, skip_render_check=False)
 
-    plt.pause(0)
+    env.render_mode = "human"
+    env.step((7, 0))
+    env.step((7, 1))
+    env.step((0, 2))
+    env.step((0, 0))
