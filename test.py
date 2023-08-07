@@ -11,23 +11,13 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import plot_results
 from stable_baselines3.ppo.policies import MlpPolicy
 
-from game import Kamisado
+from agents import LookForWinAgent
+from tournament import Tournament
 
 # Start with a model
-env = Kamisado()
+env = Tournament(LookForWinAgent)
 check_env(env)
-# model = PPO(
-#     MlpPolicy,
-#     env,
-#     learning_rate=0.0003,
-#     n_steps=2048,
-#     batch_size=64,
-#     n_epochs=10,
-#     gamma=0.99,
-#     verbose=0,
-#     policy_kwargs=dict(activation_fn=th.nn.ReLU, net_arch=[dict(pi=[128, 128], vf=[128, 128])]),
-# )
-model = PPO(MlpPolicy, env, verbose=0)
+model = PPO(MlpPolicy, env, verbose=0, gamma=1)
 
 # Create log dir for monitoring the results during training and prepare monitoring and logging the training results
 # log_dir = "tmp/" + str(uuid.uuid4())
@@ -44,7 +34,7 @@ model.learn(
 )
 print(f"Training took {time.time() - start_time:.2f}s")
 
-model.save("masked_model")
+model.save("model")
 
 # Plot the training curve
 # not showing!

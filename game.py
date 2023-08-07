@@ -3,8 +3,6 @@
   Created on 13.07.2023
 """
 from functools import partial
-from itertools import product
-from typing import overload
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -19,14 +17,7 @@ COLORS = ["orange", "blue", "purple", "pink", "yellow", "red", "green", "brown"]
 
 
 class Kamisado(gym.Env):
-    """The game Kamisado.
-
-    Props:
-        board_colors: The colors of the board.
-        render: Whether to render the board and the towers or not.
-        winner: The winner of the game, or "".
-        stopped: The reason why the game stopped, or `False`.
-    """
+    """The game Kamisado."""
 
     INVALID_ACTION_REWARD = -100
     board_colors = np.array(
@@ -44,20 +35,16 @@ class Kamisado(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 1}
 
     def __init__(self, render_mode=None):
-        """Initialize the class.
-
-        Args:
-            render (bool, optional): Whether to render the board and the
-                towers or not. Defaults to True.
-        """
+        """Initialize the class."""
         self.observation_space = spaces.MultiDiscrete([2] + [17] * 64)
         self.action_space = spaces.Box(0, 7, shape=(2,), dtype=int)
 
         self.render_mode = render_mode
         self.reset()
 
-    def reset(self, seed=None):
+    def reset(self, seed: int | None = None) -> tuple[np.ndarray, dict]:
         """Reset the game state."""
+        super().reset(seed=seed)
         self.board = np.array(
             [
                 [-1, -2, -3, -4, -5, -6, -7, -8],
@@ -82,13 +69,13 @@ class Kamisado(gym.Env):
     def close(self):
         plt.close("all")
 
-    def _get_obs(self):
+    def _get_obs(self) -> np.ndarray:
         started = 0 if self.next_tower is None else 1
         board = self.board.copy()
         board[board < 0] += 17
         return np.concatenate(([started], board.flatten()))
 
-    def _get_info(self):
+    def _get_info(self) -> dict:
         return {}
 
     def render(self):
@@ -114,8 +101,8 @@ class Kamisado(gym.Env):
 
         plt.pause(1 / self.metadata["render_fps"])
 
-    def get_tower_coords(self, tower):
-        return np.where(self.board == tower)
+    def get_tower_coords(self, tower: int) -> np.ndarray:
+        return np.array(np.where(self.board == tower)).reshape(1, 2)[0]
 
     def __check_actions(self, step, initial):
         actions = []
@@ -132,7 +119,7 @@ class Kamisado(gym.Env):
 
         return actions
 
-    def valid_actions(self, tower):
+    def valid_actions(self, tower: int | None) -> np.ndarray:
         """Get all possible actions for one tower."""
         if tower is None:
             return np.dstack((np.zeros(8), np.arange(8)))[0]
@@ -140,7 +127,7 @@ class Kamisado(gym.Env):
         tower_coords = self.get_tower_coords(tower)
 
         if self.tower_is_blocked(tower):
-            return [tower_coords]
+            return tower_coords.reshape(1, 2)
 
         actions = []
         dy = +1 if tower < 0 else -1
@@ -148,13 +135,13 @@ class Kamisado(gym.Env):
         # going straight
         actions += self.__check_actions(lambda y, x: (y + dy, x), tower_coords)
         # going left
-        actions += self.__check_actions(lambda x, y: (y + dy, x - 1), tower_coords)
+        actions += self.__check_actions(lambda y, x: (y + dy, x - 1), tower_coords)
         # going right
-        actions += self.__check_actions(lambda x, y: (y + dy, x + 1), tower_coords)
+        actions += self.__check_actions(lambda y, x: (y + dy, x + 1), tower_coords)
 
         return np.array(actions)
 
-    def tower_is_blocked(self, tower) -> bool:
+    def tower_is_blocked(self, tower: int) -> bool:
         """Check if one tower is blocked and cannot move."""
         y, x = self.get_tower_coords(tower)
         dy = +1 if tower < 0 else -1
@@ -162,34 +149,34 @@ class Kamisado(gym.Env):
         if self.board[y + dy, x] == 0:
             return False
         # nothing to the right?
-        if self.board[y + dy, x + 1] == 0 and x + 1 <= 7:
+        if x + 1 <= 7 and self.board[y + dy, x + 1] == 0:
             return False
         # nothing to the left?
-        if self.board[y + dy, x - 1] == 0 and x - 1 >= 0:
+        if x - 1 >= 0 and self.board[y + dy, x - 1] == 0:
             return False
         return True
 
-    def do_action(self, tower, action):
+    def do_action(self, tower: int, action: np.ndarray):
         """Perform an action with a tower.
 
         The action is not checked and could break the game.
         """
-        self.board[self.get_tower_coords(tower)] = 0
-        self.board[action] = tower
+        self.board[*self.get_tower_coords(tower)] = 0
+        self.board[*action.astype(int)] = tower
 
-    def color_below_tower(self, tower_coords):
+    def color_below_tower(self, tower_coords: np.ndarray) -> int:
         """Get the color the tower is standing on."""
         return self.board_colors[*tower_coords.astype(int)]
 
-    def action_is_valid(self, tower, action):
+    def action_is_valid(self, tower: int | None, action: np.ndarray) -> bool:
         return any(np.equal(self.valid_actions(tower), action).all(1))
 
-    def tower_is_winning(self, tower):
+    def tower_is_winning(self, tower: int) -> bool:
         """True, if the tower is on the starting line of its opponent."""
         y = self.get_tower_coords(tower)[0]
         return (tower < 0 and y == 7) or (tower > 0 and y == 0)
 
-    def step(self, action: tuple[int, int]):
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, int, bool, bool, dict]:
         """Play one step in the game.
 
         Args:
@@ -274,8 +261,8 @@ if __name__ == "__main__":
 
     env.render_mode = "human"
     env.reset()
-    env.step((1, 0))  # invalid
-    env.step((0, 7))
-    env.step((0, 0))  # invalid
-    env.step((1, 7))
-    env.step((5, 5))
+    env.step(np.array((1, 0)))  # invalid
+    env.step(np.array((0, 7)))
+    env.step(np.array((0, 0)))  # invalid
+    env.step(np.array((1, 7)))
+    env.step(np.array((5, 5)))
