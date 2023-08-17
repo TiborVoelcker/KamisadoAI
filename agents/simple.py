@@ -9,19 +9,24 @@ class RandomAgent(Model):
     """An agent that plays randomly."""
 
     def predict(self, obs):
-        actions = self.env.valid_actions(self.env.next_tower)
-        return self.env.np_random.choice(actions), None
+        tower = self.env.current_tower
+        if tower is None:
+            tower = self.env.np_random.integers(1, 9)
+        actions = self.env.valid_actions(tower)
+        return {"target": self.env.np_random.choice(actions), "tower": tower}, None
 
 
 class LookForWinAgent(Model):
     """An agent that plays randomly, but will make the winning move if it can."""
 
     def predict(self, obs):
-        actions = self.env.valid_actions(self.env.next_tower)
-        if self.env.next_tower is not None:
-            goal = 7 if self.env.next_tower < 0 else 0
-            winning = actions[actions[:, 0] == goal]
-            if len(winning) != 0:
-                return winning[0], None
+        tower = self.env.current_tower
+        if tower is None:
+            tower = self.env.np_random.integers(1, 9)
+        actions = self.env.valid_actions(tower)
 
-        return self.env.np_random.choice(actions), None
+        winning = actions[actions[:, 0] == 0]
+        if len(winning) != 0:
+            return {"tower": tower, "target": winning[0]}, None
+
+        return {"target": self.env.np_random.choice(actions), "tower": tower}, None

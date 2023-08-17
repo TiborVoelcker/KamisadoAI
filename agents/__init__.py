@@ -4,7 +4,7 @@
 """
 from abc import ABC, abstractmethod
 
-from game import Kamisado
+from kamisado.envs import Game
 
 
 class Model(ABC):
@@ -15,7 +15,7 @@ class Model(ABC):
         game: The game the agent plays.
     """
 
-    def __init__(self, env: Kamisado):
+    def __init__(self, env: Game):
         """Initialize the class."""
         self.env = env
 
