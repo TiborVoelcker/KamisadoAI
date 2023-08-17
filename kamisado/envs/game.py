@@ -37,9 +37,9 @@ class Action(TypedDict):
 
 class Game(gym.Env):
     INVALID_ACTION_REWARD = -100
-    WINNING_REWARD = 1
-    LOOSING_REWARD = -1
-    ACTION_REWARD = 0
+    WINNING_REWARD = 50
+    LOOSING_REWARD = -50
+    ACTION_REWARD = 1
 
     board_colors = np.array(
         [
@@ -242,6 +242,7 @@ class Game(gym.Env):
 
     def step(self, action: Action):
         action["target"] = action["target"].astype(np.int8)
+        action["tower"] = int(action["tower"])
 
         if not self.action_is_valid(action):
             return self._get_obs(), self.INVALID_ACTION_REWARD, False, True, self._get_info()
