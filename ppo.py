@@ -1,7 +1,7 @@
 import time
+from pathlib import Path
 
 from gymnasium import make
-from gymnasium.wrappers.flatten_observation import FlattenObservation
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.env_checker import check_env
@@ -10,13 +10,21 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.ppo.policies import MlpPolicy
 
 import kamisado
-from kamisado.wrappers import FlattenAction, NoTowerSelection
+from kamisado.wrappers import no_tower_selection_relative_wrappers
 
-# Start with a model
-env = make("kamisado/Game-v0")
-env = Monitor(FlattenObservation(NoTowerSelection(env)))
+
+def make_env(**kwargs):
+    env = make("kamisado/Game-v0", **kwargs)
+    return Monitor(no_tower_selection_relative_wrappers(env))
+
+
+env = make_env()
 check_env(env)
-model = PPO.load("model", env=env)
+
+if Path("model.zip").is_file():
+    model = PPO.load("model", env=env)
+else:
+    model = PPO(MlpPolicy, env=env)
 
 # Train the agent
 timesteps = 1000000
@@ -31,14 +39,10 @@ print(f"Training took {time.time() - start_time:.2f}s")
 model.save("model")
 
 # Evaluate the trained agent
-env = make("kamisado/Game-v0")
-env = FlattenObservation(FlattenAction(env))
-
 mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
 print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
 
-env = make("kamisado/Game-v0", render_mode="human")
-env = FlattenObservation(FlattenAction(env))
+env = make_env(render_mode="human")
 
 # watch the trained agent
 truncated, terminated = False, False
