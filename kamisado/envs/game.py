@@ -59,16 +59,23 @@ class Game(gym.Env):
     def __init__(self, render_mode=None, size=5):
         self.window_size = 512  # The size of the PyGame window
 
-        # Observations are the current board state, always seen from the side of the next player.
-        # Own towers are numbers 1 to 8 corresponding colors Orange to Brown (see COLORS), opponent's
-        # towers are number -8 to -1, empty squares are 0.
-        self.observation_space = spaces.Box(-8, 8, shape=(8, 8), dtype=np.int8)
+        # Observations are the current board state and the next tower to move.
+        # The board state is always seen from the side of the next player.
+        # Own towers are numbers 1 to 8 corresponding colors Orange to Brown
+        # (see COLORS), opponent's towers are number -8 to -1, empty squares
+        # are 0. The tower to move is 0 if it's the start of the game.
+        self.observation_space = spaces.Dict(
+            {
+                "board": spaces.Box(-8, 8, shape=(8, 8), dtype=np.int32),
+                "tower": spaces.Discrete(9, start=0),
+            }
+        )
 
         # Actions are dictionaries with the tower to move (1 to 8) and its target location.
         self.action_space = spaces.Dict(
             {
                 "tower": spaces.Discrete(8, start=1),
-                "target": spaces.Box(0, 7, shape=(2,), dtype=np.int8),
+                "target": spaces.Box(0, 7, shape=(2,), dtype=np.int32),
             }
         )
 
@@ -87,10 +94,10 @@ class Game(gym.Env):
         self.font = None
 
     def _get_obs(self):
-        return self.board
+        return {"board": self.board, "tower": self.current_tower if self.current_tower else 0}
 
     def _get_info(self):
-        return {"current_player": self.current_player, "current_tower": self.current_tower}
+        return {"current_player": self.current_player}
 
     @property
     def board(self):
@@ -130,7 +137,7 @@ class Game(gym.Env):
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 [8, 7, 6, 5, 4, 3, 2, 1],
             ],
-            dtype=np.int8,
+            dtype=np.int32,
         )
 
         self.current_tower = None
@@ -144,7 +151,7 @@ class Game(gym.Env):
 
     def get_tower_coords(self, tower: int) -> np.ndarray:
         y, x = np.where(self.board == tower)
-        return np.array([y[0], x[0]], dtype=np.int8)
+        return np.array([y[0], x[0]], dtype=np.int32)
 
     def tower_is_blocked(self, tower: int) -> bool:
         """Check if one tower is blocked and cannot move."""
@@ -166,7 +173,7 @@ class Game(gym.Env):
         return True
 
     def __valid_actions_in_dir(self, tower_coords: np.ndarray, direction: list[int] | np.ndarray):
-        actions = np.array([], dtype=np.int8).reshape(0, 2)
+        actions = np.array([], dtype=np.int32).reshape(0, 2)
 
         pointer = tower_coords + direction
         while ((pointer >= [0, 0]) & (pointer <= [7, 7])).all():
@@ -241,7 +248,7 @@ class Game(gym.Env):
         return False
 
     def step(self, action: Action):
-        action["target"] = action["target"].astype(np.int8)
+        action["target"] = action["target"].astype(np.int32)
         action["tower"] = int(action["tower"])
 
         if not self.action_is_valid(action):
