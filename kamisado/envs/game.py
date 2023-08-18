@@ -36,10 +36,10 @@ class Action(TypedDict):
 
 
 class Game(gym.Env):
-    INVALID_ACTION_REWARD = -100
+    INVALID_ACTION_REWARD = -1000
     WINNING_REWARD = 50
     LOOSING_REWARD = -50
-    ACTION_REWARD = 1
+    ACTION_REWARD = 0
 
     board_colors = np.array(
         [
