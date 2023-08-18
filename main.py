@@ -1,9 +1,9 @@
 from stable_baselines3 import PPO
 
-from agents.ppo import make_env
+from kamisado.agents.ppo import make_env
 
 env = make_env(render_mode="human")
-model = PPO.load("agents/ppo/model", env=env)
+model = PPO.load("kamisado/agents/ppo/model", env=env)
 
 # watch the trained agent
 truncated, terminated = False, False

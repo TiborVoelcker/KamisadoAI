@@ -2,7 +2,7 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 14.07.2023
 """
-from agents import Model
+from kamisado.agents import Model
 
 
 class RandomAgent(Model):

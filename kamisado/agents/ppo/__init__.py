@@ -25,7 +25,7 @@ def make_env(**kwargs):
     return Monitor(wrap(env, tower_selection=False))
 
 
-def train(timesteps, filename="agents/ppo/model"):
+def train(timesteps, filename="kamisado/agents/ppo/model"):
     env = make_env()
     check_env(env)
 
