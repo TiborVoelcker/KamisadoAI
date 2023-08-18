@@ -7,32 +7,29 @@
   Created on 18.08.2023
 """
 import time
-from pathlib import Path
 
-from gymnasium import make
-from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.evaluation import evaluate_policy
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.ppo.policies import MlpPolicy
 
-from kamisado.wrappers import wrap
+from kamisado import make_env
 
 
-def make_env(**kwargs):
-    env = make("kamisado/Game-v0", **kwargs)
-    return Monitor(wrap(env, tower_selection=False))
+def train(timesteps, tower_selection=False, mask=True, reward_action=False):
+    env = make_env(tower_selection=tower_selection, mask=mask, reward_action=reward_action)
 
+    if mask:
+        from sb3_contrib.ppo_mask import MaskablePPO as PPO
 
-def train(timesteps, filename="kamisado/agents/ppo/model"):
-    env = make_env()
-    check_env(env)
+        filename = "kamisado/agents/ppo/model_masked"
 
-    if Path(filename + ".zip").is_file():
         model = PPO.load(filename, env=env)
+
     else:
-        model = PPO(MlpPolicy, env=env)
+        from stable_baselines3.ppo import PPO
+
+        filename = "kamisado/agents/ppo/model"
+
+        model = PPO.load(filename, env=env)
 
     # Train the agent
     start_time = time.time()

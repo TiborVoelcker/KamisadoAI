@@ -23,6 +23,3 @@ class Model(ABC):
     def predict(self, obs) -> tuple[tuple[int, int], None]:
         """Choose an action based on a observation."""
         pass
-
-
-from .simple import LookForWinAgent, RandomAgent
