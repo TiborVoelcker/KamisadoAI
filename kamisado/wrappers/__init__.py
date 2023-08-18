@@ -3,37 +3,50 @@
   Created on 09.08.2023
 """
 import numpy as np
-from gymnasium import ActionWrapper, spaces
-from gymnasium.wrappers.flatten_observation import FlattenObservation
+from gymnasium import ActionWrapper, ObservationWrapper, spaces
 
 
-def no_tower_selection_relative_wrappers(env):
-    return FlattenAction(FlattenObservation(NoTowerSelection(RelativeAction(env))))
+def wrap(env, tower_selection=True):
+    env = RelativeAction(env)
+    if not tower_selection:
+        env = NoTowerSelection(env)
+    return FlattenAction(FlattenObservation(env))
 
 
-def relative_wrappers(env):
-    return FlattenAction(FlattenObservation(RelativeAction(env)))
-
-
-class FlattenAction(ActionWrapper):
+class FlattenObservation(ObservationWrapper):
     """Wrapper to flatten the action space.
 
+    It will only flatten the dictionary, and not make a one-hot vector out of the
+    discrete spaces.
     This wrapper only works if the environment is also wrapped in the
     `RelativeAction` wrapper.
     """
 
     def __init__(self, env):
         super().__init__(env)
-        self.target_dim = 7 * 3 + 1
-        self.tower_dim = 8
-        self.action_space = spaces.Box(
-            0, 1, shape=(self.target_dim + self.tower_dim,), dtype=np.int32
-        )
+        self.observation_space = spaces.MultiDiscrete([17] * 64 + [9])
+
+    def observation(self, obs):
+        return np.append(obs["board"].flatten() + 8, obs["tower"])
+
+
+class FlattenAction(ActionWrapper):
+    """Wrapper to flatten the action space.
+
+    It will only flatten the dictionary, and not make a one-hot vector out of the
+    discrete spaces.
+    This wrapper only works if the environment is also wrapped in the
+    `RelativeAction` wrapper.
+    """
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.action_space = spaces.MultiDiscrete([22, 8])
 
     def action(self, action):
         return {
-            "target": action[: self.target_dim].argmax(),
-            "tower": action[self.target_dim :].argmax() + 1,
+            "target": action[0],
+            "tower": action[1] + 1,
         }
 
 
@@ -74,7 +87,7 @@ class RelativeAction(ActionWrapper):
         self.action_space = spaces.Dict(
             {
                 "tower": spaces.Discrete(8, start=1),
-                "target": spaces.Discrete(len(self.int_to_relative) - 1),
+                "target": spaces.Discrete(21),
             }
         )
 

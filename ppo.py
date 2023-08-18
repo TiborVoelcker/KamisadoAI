@@ -10,33 +10,35 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.ppo.policies import MlpPolicy
 
 import kamisado
-from kamisado.wrappers import no_tower_selection_relative_wrappers
+from kamisado.wrappers import wrap
+
+TIMESTEPS = 1000000
+FILENAME = "model"
 
 
 def make_env(**kwargs):
     env = make("kamisado/Game-v0", **kwargs)
-    return Monitor(no_tower_selection_relative_wrappers(env))
+    return Monitor(wrap(env, tower_selection=False))
 
 
 env = make_env()
 check_env(env)
 
-if Path("model.zip").is_file():
-    model = PPO.load("model", env=env)
+if Path(FILENAME + ".zip").is_file():
+    model = PPO.load(FILENAME, env=env)
 else:
     model = PPO(MlpPolicy, env=env)
 
 # Train the agent
-timesteps = 1000000
 start_time = time.time()
 model.learn(
-    total_timesteps=timesteps,
-    callback=EvalCallback(env, eval_freq=timesteps // 50, n_eval_episodes=10),
+    total_timesteps=TIMESTEPS,
+    callback=EvalCallback(env, eval_freq=TIMESTEPS // 50, n_eval_episodes=10),
     reset_num_timesteps=False,
 )
 print(f"Training took {time.time() - start_time:.2f}s")
 
-model.save("model")
+model.save(FILENAME)
 
 # Evaluate the trained agent
 mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)

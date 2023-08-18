@@ -66,7 +66,7 @@ class Game(gym.Env):
         # are 0. The tower to move is 0 if it's the start of the game.
         self.observation_space = spaces.Dict(
             {
-                "board": spaces.Box(-8, 8, shape=(8, 8), dtype=np.int32),
+                "board": spaces.Box(-8, 8, shape=(8, 8), dtype=np.int64),
                 "tower": spaces.Discrete(9, start=0),
             }
         )
@@ -75,7 +75,7 @@ class Game(gym.Env):
         self.action_space = spaces.Dict(
             {
                 "tower": spaces.Discrete(8, start=1),
-                "target": spaces.Box(0, 7, shape=(2,), dtype=np.int32),
+                "target": spaces.Box(0, 7, shape=(2,), dtype=np.int64),
             }
         )
 
@@ -137,7 +137,7 @@ class Game(gym.Env):
                 [0, 0, 0, 0, 0, 0, 0, 0],
                 [8, 7, 6, 5, 4, 3, 2, 1],
             ],
-            dtype=np.int32,
+            dtype=np.int64,
         )
 
         self.current_tower = None
@@ -151,7 +151,7 @@ class Game(gym.Env):
 
     def get_tower_coords(self, tower: int) -> np.ndarray:
         y, x = np.where(self.board == tower)
-        return np.array([y[0], x[0]], dtype=np.int32)
+        return np.array([y[0], x[0]], dtype=np.int64)
 
     def tower_is_blocked(self, tower: int) -> bool:
         """Check if one tower is blocked and cannot move."""
@@ -173,7 +173,7 @@ class Game(gym.Env):
         return True
 
     def __valid_actions_in_dir(self, tower_coords: np.ndarray, direction: list[int] | np.ndarray):
-        actions = np.array([], dtype=np.int32).reshape(0, 2)
+        actions = np.array([], dtype=np.int64).reshape(0, 2)
 
         pointer = tower_coords + direction
         while ((pointer >= [0, 0]) & (pointer <= [7, 7])).all():
@@ -248,7 +248,7 @@ class Game(gym.Env):
         return False
 
     def step(self, action: Action):
-        action["target"] = action["target"].astype(np.int32)
+        action["target"] = action["target"].astype(np.int64)
         action["tower"] = int(action["tower"])
 
         if not self.action_is_valid(action):
