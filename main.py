@@ -12,6 +12,20 @@
 #     action, _ = model.predict(obs, deterministic=True)
 #     obs, reward, truncated, terminated, info = env.step(action)
 
-from kamisado.agents.ppo import train
+from functools import partial
 
-train(100000, mask=False, reward_action=False)
+from stable_baselines3.ppo import PPO
+
+from kamisado.agents.ppo import train
+from kamisado.agents.simple import LookForWinAgent
+
+model = partial(PPO.load, "kamisado/agents/ppo/model")
+
+train(
+    1000,
+    mask=False,
+    tournament=True,
+    tournament_opponent=LookForWinAgent,
+    tower_selection=False,
+    reward_action=False,
+)

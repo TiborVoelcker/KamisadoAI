@@ -4,24 +4,34 @@
 """
 from gymnasium import RewardWrapper
 from sb3_contrib.common.wrappers import ActionMasker
+from stable_baselines3.common.monitor import Monitor
+
+from kamisado.agents.simple import LookForWinAgent
 
 from .flatten import FlattenAction, FlattenObservation
 from .mask import mask_fn
 from .relative import RelativeAction
+from .tournament import TournamentWrapper
 from .tower_selection import NoTowerSelection
 
 
-def wrap(env, tower_selection=True, mask=True, reward_action=False):
+def wrap(
+    env,
+    tournament=True,
+    tournament_opponent=LookForWinAgent,
+    tower_selection=True,
+    reward_action=False,
+):
     if reward_action:
         env = ActionReward(env)
     env = RelativeAction(env)
     if not tower_selection:
         env = NoTowerSelection(env)
-    env = FlattenAction(FlattenObservation(env))
-    if mask:
-        env = ActionMasker(env, mask_fn)
+    env = ActionMasker(FlattenAction(FlattenObservation(env)), mask_fn)
+    if tournament and tournament_opponent:
+        env = TournamentWrapper(env, tournament_opponent)
 
-    return env
+    return Monitor(env)
 
 
 class ActionReward(RewardWrapper):
