@@ -1,9 +1,16 @@
+# from functools import partial
+
+# from gymnasium import make
 # from sb3_contrib.ppo_mask import MaskablePPO as PPO
 
-# from kamisado.agents.ppo import make_env
+# from kamisado.wrappers import wrap
 
-# env = make_env(render_mode="human")
-# model = PPO.load("kamisado/agents/ppo/model_masked", env=env)
+# model = partial(PPO.load, "kamisado/agents/ppo/model/best_model")
+# env = make("kamisado/Game-v0", render_mode="human")
+# env = wrap(
+#     env, tournament=True, tournament_opponent=model, tower_selection=False, reward_action=False
+# )
+# model = PPO.load("kamisado/agents/ppo/model/best_model", env=env)
 
 # # watch the trained agent
 # truncated, terminated = False, False
@@ -17,15 +24,16 @@ from functools import partial
 from stable_baselines3.ppo import PPO
 
 from kamisado.agents.ppo import train
-from kamisado.agents.simple import LookForWinAgent
 
-model = partial(PPO.load, "kamisado/agents/ppo/model")
+model = partial(PPO.load, "kamisado/agents/ppo/model/best_model")
 
-train(
-    1000,
-    mask=False,
-    tournament=True,
-    tournament_opponent=LookForWinAgent,
-    tower_selection=False,
-    reward_action=False,
-)
+
+if __name__ == "__main__":
+    train(
+        100000,
+        mask=False,
+        tournament=True,
+        tournament_opponent=model,
+        tower_selection=False,
+        reward_action=False,
+    )
