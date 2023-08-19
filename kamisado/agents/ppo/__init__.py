@@ -8,14 +8,17 @@
 """
 import time
 
+from gymnasium import make
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.evaluation import evaluate_policy
 
-from kamisado import make_env
+from ...wrappers import wrap
 
 
-def train(timesteps, tower_selection=False, mask=True, reward_action=False):
-    env = make_env(tower_selection=tower_selection, mask=mask, reward_action=reward_action)
+def train(timesteps, mask=False, **kwargs):
+    env = make("kamisado/Game-v0")
+    env = wrap(env, **kwargs)
+    eval_env = wrap(make("kamisado/Game-v0"), **kwargs)
 
     if mask:
         from sb3_contrib.ppo_mask import MaskablePPO as PPO
@@ -35,13 +38,22 @@ def train(timesteps, tower_selection=False, mask=True, reward_action=False):
     start_time = time.time()
     model.learn(
         total_timesteps=timesteps,
-        callback=EvalCallback(env, eval_freq=timesteps // 50, n_eval_episodes=10),
         reset_num_timesteps=False,
+        callback=EvalCallback(
+            eval_env,
+            best_model_save_path="./logs/",
+            log_path="./logs/",
+            eval_freq=timesteps // 50,
+            n_eval_episodes=50,
+            deterministic=True,
+            render=False,
+        ),
+        progress_bar=True,
     )
     print(f"Training took {time.time() - start_time:.2f}s")
 
-    model.save(filename)
+    # model.save(filename)
 
-    # Evaluate the trained agent
-    mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
-    print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
+    # # Evaluate the trained agent
+    # mean_reward, std_reward = evaluate_policy(model, env, n_eval_episodes=100)
+    # print(f"mean_reward:{mean_reward:.2f} +/- {std_reward:.2f}")
