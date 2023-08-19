@@ -10,13 +10,19 @@ from kamisado.agents import Model
 
 
 class TournamentWrapper(Wrapper):
-    def __init__(self, env: Env, opponent: type[BaseAlgorithm] | type[Model], **kwargs):
+    def __init__(
+        self, env: Env, opponent: type[BaseAlgorithm] | type[Model], enforce_side=False, **kwargs
+    ):
+        self.enforce_side = enforce_side
         super().__init__(env)
         self.opponent = opponent(env=env, **kwargs)
 
     def reset(self, seed=None, options=None):
         obs, info = super().reset(seed=seed)
-        self.opponent_color = self.np_random.choice([0, 1])
+        if self.enforce_side is False:
+            self.opponent_color = self.np_random.choice([0, 1])
+        else:
+            self.opponent_color = 1 if self.enforce_side is 0 else 0
         if self.opponent_color == 0:
             action, _ = self.opponent.predict(obs, deterministic=True)
             obs, reward, truncated, terminated, info = super().step(action)
