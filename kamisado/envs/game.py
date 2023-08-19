@@ -252,7 +252,7 @@ class Game(gym.Env):
         action["tower"] = int(action["tower"])
 
         if not self.action_is_valid(action):
-            return self._get_obs(), self.INVALID_ACTION_REWARD, False, True, self._get_info()
+            return self._get_obs(), self.INVALID_ACTION_REWARD, True, False, self._get_info()
 
         # move tower
         self.do_action(action)
