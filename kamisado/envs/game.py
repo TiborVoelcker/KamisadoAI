@@ -240,7 +240,8 @@ class Game(gym.Env):
         pointer = self.current_tower
         while self.tower_is_blocked(pointer):
             pointer_coords = self.get_tower_coords(pointer)
-            pointer = self.color_at_coords(pointer_coords)
+            color = self.color_at_coords(pointer_coords)
+            pointer = -color if pointer > 0 else color
 
             # check if loop is complete
             if pointer == self.current_tower:
