@@ -21,23 +21,3 @@ class FlattenObservation(ObservationWrapper):
 
     def observation(self, obs):
         return np.append(obs["board"].flatten() + 8, obs["tower"])
-
-
-class FlattenAction(ActionWrapper):
-    """Wrapper to flatten the action space.
-
-    It will only flatten the dictionary, and not make a one-hot vector out of the
-    discrete spaces.
-    This wrapper only works if the environment is also wrapped in the
-    `RelativeAction` wrapper.
-    """
-
-    def __init__(self, env):
-        super().__init__(env)
-        self.action_space = spaces.MultiDiscrete([22, 8])
-
-    def action(self, action):
-        return {
-            "target": action[0],
-            "tower": action[1] + 1,
-        }

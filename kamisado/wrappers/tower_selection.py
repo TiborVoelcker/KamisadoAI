@@ -2,7 +2,7 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 18.08.2023
 """
-from gymnasium import ActionWrapper, spaces
+from gymnasium import ActionWrapper
 
 
 class NoTowerSelection(ActionWrapper):
@@ -16,7 +16,7 @@ class NoTowerSelection(ActionWrapper):
         super().__init__(env)
 
     def action(self, action):
-        tower = self.env.current_tower
-        if tower is None:
-            tower = action["tower"]
-        return {"target": action["target"], "tower": tower}
+        if self.env.current_tower:
+            action[1] = self.env.current_tower
+
+        return action

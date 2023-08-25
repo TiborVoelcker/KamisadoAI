@@ -30,11 +30,6 @@ def draw_tower(canvas, tower, coords, radius):
     pygame.draw.circle(canvas, tower, coords, radius * 0.6)
 
 
-class Action(TypedDict):
-    tower: int
-    target: int
-
-
 class Game(gym.Env):
     INVALID_ACTION_REWARD = -1000
     WINNING_REWARD = 50
@@ -85,12 +80,7 @@ class Game(gym.Env):
         )
 
         # Actions are dictionaries with the tower to move (1 to 8) and its target location.
-        self.action_space = spaces.Dict(
-            {
-                "tower": spaces.Discrete(8, start=1),
-                "target": spaces.Discrete(21),
-            }
-        )
+        self.action_space = spaces.MultiDiscrete([22, 8])
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -219,7 +209,7 @@ class Game(gym.Env):
         """Get all possible actions for one tower."""
         return self.relative_actions[self.target_mask(tower)]
 
-    def parse_action(self, action: Action) -> tuple[bool, int, np.ndarray]:
+    def parse_action(self, action: np.ndarray) -> tuple[bool, int, np.ndarray]:
         """Parse an action.
 
         Args:
@@ -230,14 +220,14 @@ class Game(gym.Env):
             int: The tower to move.
             np.ndarray: The relative target to move to.
         """
-        tower = int(action["tower"])
-        target = self.relative_actions[int(action["target"])]
+        tower = int(action[1] + 1)
+        target = self.relative_actions[int(action[0])]
 
         # check if tower selection is correct
-        if not action["tower"] == self.current_tower and self.current_tower is not None:
+        if not tower == self.current_tower and self.current_tower is not None:
             return False, tower, target
         # check if tower can move to the provided target
-        valid_actions = self.valid_targets(action["tower"])
+        valid_actions = self.valid_targets(tower)
         return (valid_actions == target).all(1).any(), tower, target
 
     def move_tower(self, tower: int, target: np.ndarray):
@@ -281,7 +271,7 @@ class Game(gym.Env):
                 return True
         return False
 
-    def step(self, action: Action):
+    def step(self, action: np.ndarray):
         valid, tower, target = self.parse_action(action)
         if not valid:
             return self._get_obs(), self.INVALID_ACTION_REWARD, True, False, self._get_info()
@@ -290,7 +280,7 @@ class Game(gym.Env):
         self.move_tower(tower, target)
 
         # set next tower and player
-        self.current_tower = self.color_at_coords(self.get_tower_coords(action["tower"]))
+        self.current_tower = self.color_at_coords(self.get_tower_coords(tower))
         self.current_player = 1 if self.current_player == 0 else 0
 
         if self.render_mode == "human":
@@ -405,10 +395,10 @@ if __name__ == "__main__":
 
     env = Game(render_mode="human")
     obs, info = env.reset()
-    env.step({"tower": 4, "target": 13})
-    env.step({"tower": 2, "target": 9})
-    env.step({"tower": 4, "target": 0})
-    env.step({"tower": 2, "target": 4})
-    env.step({"tower": 4, "target": 0})
-    env.step({"tower": 2, "target": 15})
+    env.step(np.array([13, 3]))
+    env.step(np.array([9, 1]))
+    env.step(np.array([0, 3]))
+    env.step(np.array([4, 1]))
+    env.step(np.array([0, 3]))
+    env.step(np.array([15, 1]))
     print("Done")

@@ -8,7 +8,7 @@ from stable_baselines3.common.monitor import Monitor
 
 from kamisado.agents.simple import LookForWinAgent
 
-from .flatten import FlattenAction, FlattenObservation
+from .flatten import FlattenObservation
 from .tournament import TournamentWrapper
 from .tower_selection import NoTowerSelection
 
@@ -24,7 +24,7 @@ def wrap(
         env = ActionReward(env)
     if not tower_selection:
         env = NoTowerSelection(env)
-    env = FlattenAction(FlattenObservation(env))
+    env = FlattenObservation(env)
     if tournament and tournament_opponent:
         env = TournamentWrapper(env, tournament_opponent)
 
