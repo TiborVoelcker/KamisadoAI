@@ -10,7 +10,6 @@ from kamisado.agents.simple import LookForWinAgent
 
 from .flatten import FlattenAction, FlattenObservation
 from .mask import mask_fn
-from .relative import RelativeAction
 from .tournament import TournamentWrapper
 from .tower_selection import NoTowerSelection
 
@@ -24,7 +23,6 @@ def wrap(
 ):
     if reward_action:
         env = ActionReward(env)
-    env = RelativeAction(env)
     if not tower_selection:
         env = NoTowerSelection(env)
     env = ActionMasker(FlattenAction(FlattenObservation(env)), mask_fn)

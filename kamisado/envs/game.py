@@ -32,7 +32,7 @@ def draw_tower(canvas, tower, coords, radius):
 
 class Action(TypedDict):
     tower: int
-    target: np.ndarray
+    target: int
 
 
 class Game(gym.Env):
@@ -88,7 +88,7 @@ class Game(gym.Env):
         self.action_space = spaces.Dict(
             {
                 "tower": spaces.Discrete(8, start=1),
-                "target": spaces.Box(0, 7, shape=(2,), dtype=np.int64),
+                "target": spaces.Discrete(21),
             }
         )
 
@@ -200,23 +200,37 @@ class Game(gym.Env):
 
         return np.append(False, mask.flatten())
 
-    def valid_actions(self, tower: int) -> np.ndarray:
+    def valid_targets(self, tower: int) -> np.ndarray:
         """Get all possible actions for one tower."""
         return self.relative_actions[self.target_mask(tower)]
 
-    def action_is_valid(self, action: Action) -> bool:
+    def parse_action(self, action: Action) -> tuple[bool, int, np.ndarray]:
+        """Parse an action.
+
+        Args:
+            action (Action): The action to be parsed.
+
+        Returns:
+            bool: Wether the action is valid.
+            int: The tower to move.
+            np.ndarray: The relative target to move to.
+        """
+        tower = int(action["tower"])
+        target = self.relative_actions[int(action["target"])]
+
         # check if tower selection is correct
         if not action["tower"] == self.current_tower and self.current_tower is not None:
-            return False
+            return False, tower, target
         # check if tower can move to the provided target
-        valid_actions = self.valid_actions(action["tower"])
-        return (valid_actions == action["target"]).all(1).any()
+        valid_actions = self.valid_targets(action["tower"])
+        return (valid_actions == target).all(1).any(), tower, target
 
-    def do_action(self, action: Action):
+    def move_tower(self, tower: int, target: np.ndarray):
+        """Move a tower to a relative target."""
         board = self.board
-        coords = self.get_tower_coords(action["tower"])
+        coords = self.get_tower_coords(tower)
         board[*coords] = 0
-        board[*coords + action["target"]] = action["tower"]
+        board[*coords + target] = tower
         self.board = board
 
     def color_at_coords(self, coords: list[int] | np.ndarray):
@@ -253,14 +267,12 @@ class Game(gym.Env):
         return False
 
     def step(self, action: Action):
-        action["target"] = action["target"].astype(np.int64)
-        action["tower"] = int(action["tower"])
-
-        if not self.action_is_valid(action):
+        valid, tower, target = self.parse_action(action)
+        if not valid:
             return self._get_obs(), self.INVALID_ACTION_REWARD, True, False, self._get_info()
 
         # move tower
-        self.do_action(action)
+        self.move_tower(tower, target)
 
         # set next tower and player
         self.current_tower = self.color_at_coords(self.get_tower_coords(action["tower"]))
@@ -378,10 +390,10 @@ if __name__ == "__main__":
 
     env = Game(render_mode="human")
     obs, info = env.reset()
-    env.step({"tower": 4, "target": np.array([-6, 0])})
-    env.step({"tower": 2, "target": np.array([-2, 0])})
-    env.step({"tower": 4, "target": np.array([0, 0])})
-    env.step({"tower": 2, "target": np.array([-4, -4])})
-    env.step({"tower": 4, "target": np.array([0, 0])})
-    env.step({"tower": 2, "target": np.array([-1, 1])})
+    env.step({"tower": 4, "target": 13})
+    env.step({"tower": 2, "target": 9})
+    env.step({"tower": 4, "target": 0})
+    env.step({"tower": 2, "target": 4})
+    env.step({"tower": 4, "target": 0})
+    env.step({"tower": 2, "target": 15})
     print("Done")
