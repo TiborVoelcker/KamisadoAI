@@ -221,6 +221,7 @@ class Game(gym.Env):
     def color_at_coords(self, coords: list[int] | np.ndarray):
         return self.board_colors[*coords]
 
+    @property
     def is_won(self) -> bool:
         """Check whether the game is won by reaching the goal line.
 
@@ -229,6 +230,7 @@ class Game(gym.Env):
         """
         return any(self.board[7] < 0)
 
+    @property
     def is_deadlocked(self) -> bool:
         """Check whether the game is deadlocked.
 
@@ -266,7 +268,7 @@ class Game(gym.Env):
             self._render_frame()
 
         # check if game was won
-        if self.is_won():
+        if self.is_won:
             return (
                 self._get_obs(),
                 self.WINNING_REWARD,
@@ -276,7 +278,7 @@ class Game(gym.Env):
             )
 
         # check if deadlocked
-        if self.is_deadlocked():
+        if self.is_deadlocked:
             return (
                 self._get_obs(),
                 self.LOOSING_REWARD,
@@ -331,13 +333,13 @@ class Game(gym.Env):
 
         # draw winner
         winner = None
-        if self.is_won():
+        if self.is_won:
             # attention! current_player is already set to the next player
-            # this is required for the `self.is_deadlocked()` function
+            # this is required for the `self.is_deadlocked` property
             winner = "White" if self.current_player == 0 else "Black"
-        elif self.is_deadlocked():
+        elif self.is_deadlocked:
             # attention! current_player is already set to the next player
-            # this is required for the `self.is_deadlocked()` function
+            # this is required for the `self.is_deadlocked` property
             winner = "Black" if self.current_player == 0 else "White"
 
         if winner:
