@@ -19,10 +19,7 @@ def mask_fn(env):
         return np.ones(22 + 8, dtype=bool)
 
     valid_actions = env.valid_actions(valid_tower)
-    loc = env.get_tower_coords(valid_tower)
-    # get relative actions
-    valid_actions = valid_actions - loc
-    # get indezes for actions
+    # get indexes for actions
     valid_actions = np.array([__relative_to_int(action) for action in valid_actions])
 
     actions_mask = np.zeros(22, dtype=bool)

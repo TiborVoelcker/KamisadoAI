@@ -53,6 +53,19 @@ class Game(gym.Env):
             [8, 7, 6, 5, 4, 3, 2, 1],
         ]
     )
+    relative_actions = np.concatenate(
+        (
+            # not moving
+            np.array([[0, 0]]),
+            # going left
+            np.dstack((np.arange(-1, -8, -1), np.arange(-1, -8, -1)))[0],
+            # going up
+            np.dstack((np.arange(-1, -8, -1), np.zeros(7, dtype=int)))[0],
+            # going right
+            np.dstack((np.arange(-1, -8, -1), np.arange(1, 8)))[0],
+        )
+    )
+    relative_actions.setflags(write=False)
 
     metadata = {"render_modes": ["human", "rgb_array", "ansi"], "render_fps": 1}
 
@@ -150,59 +163,46 @@ class Game(gym.Env):
         return self._get_obs(), self._get_info()
 
     def get_tower_coords(self, tower: int) -> np.ndarray:
+        """Get the coordinates of a tower."""
         y, x = np.where(self.board == tower)
         return np.array([y[0], x[0]], dtype=np.int64)
 
     def tower_is_blocked(self, tower: int) -> bool:
         """Check if one tower is blocked and cannot move."""
-        y, x = self.get_tower_coords(tower)
+        tower_coords = self.get_tower_coords(tower)
+        test = np.array([[-1, -1], [-1, 0], [-1, 1]])
+        if tower < 0:
+            test *= -1
+        test = test + tower_coords
 
-        # game is already won
-        if y - 1 < 0:
-            return True
+        test = test[((test >= 0) & (test <= 7)).all(1)]
 
-        # nothing in front?
-        if self.board[y - 1, x] == 0:
-            return False
-        # nothing to the right?
-        if x + 1 <= 7 and self.board[y - 1, x + 1] == 0:
-            return False
-        # nothing to the left?
-        if x - 1 >= 0 and self.board[y - 1, x - 1] == 0:
-            return False
-        return True
+        return (self.board[tuple(test.T)] != 0).all()
 
-    def __valid_actions_in_dir(self, tower_coords: np.ndarray, direction: list[int] | np.ndarray):
-        actions = np.array([], dtype=np.int64).reshape(0, 2)
+    def target_mask(self, tower: int) -> np.ndarray:
+        """Get a mask for valid relative actions."""
+        if self.tower_is_blocked(tower):
+            return np.append(True, np.zeros(21, dtype=bool))
 
-        pointer = tower_coords + direction
-        while ((pointer >= [0, 0]) & (pointer <= [7, 7])).all():
-            if self.board[*pointer] != 0:
-                break
+        tower_coords = self.get_tower_coords(tower)
+        if tower > 0:
+            abs_actions = self.relative_actions + tower_coords
+        else:
+            abs_actions = self.relative_actions * -1 + tower_coords
 
-            actions = np.vstack((actions, pointer))
-            np.vstack
+        # set indexes outside of board invalid
+        mask = ((abs_actions >= 0) & (abs_actions <= 7)).all(1)
+        # set indexes with tower on them invalid
+        mask[mask] = self.board[tuple(abs_actions[mask].T)] == 0
+        # set all indexes after invalid indexes also invalid
+        paths = mask[1:].reshape(3, 7)
+        mask = np.invert(np.invert(paths).cumsum(1, dtype=bool))
 
-            pointer += direction
-
-        return actions
+        return np.append(False, mask.flatten())
 
     def valid_actions(self, tower: int) -> np.ndarray:
         """Get all possible actions for one tower."""
-        tower_coords = self.get_tower_coords(tower)
-
-        if self.tower_is_blocked(tower):
-            # return own position als only valid action
-            return tower_coords.reshape(1, 2)
-
-        # going straight
-        actions = self.__valid_actions_in_dir(tower_coords, [-1, 0])
-        # going left
-        actions = np.vstack((actions, self.__valid_actions_in_dir(tower_coords, [-1, -1])))
-        # going right
-        actions = np.vstack((actions, self.__valid_actions_in_dir(tower_coords, [-1, 1])))
-
-        return actions
+        return self.relative_actions[self.target_mask(tower)]
 
     def action_is_valid(self, action: Action) -> bool:
         # check if tower selection is correct
@@ -214,11 +214,13 @@ class Game(gym.Env):
 
     def do_action(self, action: Action):
         board = self.board
-        board[*self.get_tower_coords(action["tower"])] = 0
-        board[*action["target"]] = action["tower"]
+        coords = self.get_tower_coords(action["tower"])
+        board[*coords] = 0
+        board[*coords + action["target"]] = action["tower"]
         self.board = board
 
     def color_at_coords(self, coords: list[int] | np.ndarray):
+        """Get the board color at specified coordinates."""
         return self.board_colors[*coords]
 
     @property
@@ -261,7 +263,7 @@ class Game(gym.Env):
         self.do_action(action)
 
         # set next tower and player
-        self.current_tower = self.color_at_coords(action["target"])
+        self.current_tower = self.color_at_coords(self.get_tower_coords(action["tower"]))
         self.current_player = 1 if self.current_player == 0 else 0
 
         if self.render_mode == "human":
@@ -376,7 +378,10 @@ if __name__ == "__main__":
 
     env = Game(render_mode="human")
     obs, info = env.reset()
-    env.step({"tower": 4, "target": np.array([2, 4])})
-    env.step({"tower": 3, "target": np.array([6, 5])})
-    env.step({"tower": 4, "target": np.array([0, 2])})
+    env.step({"tower": 4, "target": np.array([-6, 0])})
+    env.step({"tower": 2, "target": np.array([-2, 0])})
+    env.step({"tower": 4, "target": np.array([0, 0])})
+    env.step({"tower": 2, "target": np.array([-4, -4])})
+    env.step({"tower": 4, "target": np.array([0, 0])})
+    env.step({"tower": 2, "target": np.array([-1, 1])})
     print("Done")
