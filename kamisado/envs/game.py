@@ -72,12 +72,7 @@ class Game(gym.Env):
         # Own towers are numbers 1 to 8 corresponding colors Orange to Brown
         # (see COLORS), opponent's towers are number -8 to -1, empty squares
         # are 0. The tower to move is 0 if it's the start of the game.
-        self.observation_space = spaces.Dict(
-            {
-                "board": spaces.Box(-8, 8, shape=(8, 8), dtype=np.int64),
-                "tower": spaces.Discrete(9, start=0),
-            }
-        )
+        self.observation_space = spaces.MultiDiscrete([17] * 64 + [9])
 
         # Actions are dictionaries with the tower to move (1 to 8) and its target location.
         self.action_space = spaces.MultiDiscrete([22, 8])
@@ -97,10 +92,10 @@ class Game(gym.Env):
         self.font = None
 
     def _get_obs(self):
-        return {"board": self.board, "tower": self.current_tower if self.current_tower else 0}
+        return np.append(self.board.flatten() + 8, self.current_tower if self.current_tower else 0)
 
     def _get_info(self):
-        return {"current_player": self.current_player}
+        return {"current_player": self.current_player, "board": self.board}
 
     @property
     def board(self):
