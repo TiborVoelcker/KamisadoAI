@@ -67,14 +67,8 @@ class Game(gym.Env):
     def __init__(self, render_mode=None, size=5):
         self.window_size = 512  # The size of the PyGame window
 
-        # Observations are the current board state and the next tower to move.
-        # The board state is always seen from the side of the next player.
-        # Own towers are numbers 1 to 8 corresponding colors Orange to Brown
-        # (see COLORS), opponent's towers are number -8 to -1, empty squares
-        # are 0. The tower to move is 0 if it's the start of the game.
         self.observation_space = spaces.MultiDiscrete([17] * 64 + [9])
 
-        # Actions are dictionaries with the tower to move (1 to 8) and its target location.
         self.action_space = spaces.MultiDiscrete([22, 8])
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]

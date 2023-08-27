@@ -22,7 +22,7 @@ class TournamentWrapper(Wrapper):
         if self.enforce_side is False:
             self.opponent_color = self.np_random.choice([0, 1])
         else:
-            self.opponent_color = 1 if self.enforce_side is 0 else 0
+            self.opponent_color = 1 if self.enforce_side == 0 else 0
         if self.opponent_color == 0:
             action, _ = self.opponent.predict(obs, deterministic=True)
             obs, reward, truncated, terminated, info = super().step(action)

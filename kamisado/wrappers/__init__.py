@@ -3,7 +3,6 @@
   Created on 09.08.2023
 """
 from gymnasium import RewardWrapper
-from sb3_contrib.common.wrappers import ActionMasker
 from stable_baselines3.common.monitor import Monitor
 
 from kamisado.agents.simple import LookForWinAgent
