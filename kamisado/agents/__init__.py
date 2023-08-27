@@ -20,6 +20,6 @@ class Model(ABC):
         self.env = env
 
     @abstractmethod
-    def predict(self, obs) -> tuple[tuple[int, int], None]:
+    def predict(self, obs, **kwargs):
         """Choose an action based on a observation."""
         pass
