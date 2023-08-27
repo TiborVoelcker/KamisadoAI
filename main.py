@@ -18,16 +18,8 @@
 # while not truncated and not terminated:
 #     action, _ = model.predict(obs, deterministic=True)
 #     obs, reward, truncated, terminated, info = env.step(action)
-
-from functools import partial
-
-from stable_baselines3.ppo import PPO
-
 from kamisado.agents.ppo import train
 from kamisado.agents.simple import LookForWinAgent
-
-# model = partial(PPO.load, "kamisado/agents/ppo/model/best_model")
-
 
 if __name__ == "__main__":
     train(

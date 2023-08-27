@@ -2,11 +2,8 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 18.08.2023
 """
-"""
-  Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
-  Created on 18.08.2023
-"""
 import time
+from functools import partial
 from pathlib import Path
 
 from gymnasium import make
@@ -15,13 +12,20 @@ from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewar
 
 from kamisado.wrappers import wrap
 
+path = Path("kamisado/agents/ppo/model")
+file = path / "best_mode"
+
 
 def train(timesteps, **kwargs):
+    if kwargs.get("tournament_opponent") == "self":
+        if not file.exists():
+            raise UserWarning(
+                "Cannot use `tournament_opponent` 'self', if model does not exist yet!"
+            )
+        kwargs["tournament_opponent"] = partial(PPO.load, file)
+
     env = wrap(make("kamisado/Game-v0"), **kwargs)
     eval_env = wrap(make("kamisado/Game-v0"), **kwargs)
-
-    path = Path("kamisado/agents/ppo/model")
-    file = path / "best_mode"
 
     if file.exists():
         model = PPO.load(file, env=env)
