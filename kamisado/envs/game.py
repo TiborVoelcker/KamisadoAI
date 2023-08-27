@@ -69,7 +69,7 @@ class Game(gym.Env):
 
         self.observation_space = spaces.MultiDiscrete([17] * 64 + [9])
 
-        self.action_space = spaces.MultiDiscrete([22, 8])
+        self.action_space = spaces.MultiDiscrete([8, 22])
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -164,14 +164,14 @@ class Game(gym.Env):
             # for the first move, the valid moves depend on the chosen tower
             # we just allow all possible first moves and hope the model
             # figures out the rest
-            mask = np.ones(22 + 8, dtype=bool)
-            mask[:22:7] = False
+            mask = np.ones(8 + 22, dtype=bool)
+            mask[8::7] = False
             return mask
 
-        target_mask = self.target_mask(valid_tower)
         tower_mask = np.zeros(8, dtype=bool)
         tower_mask[valid_tower - 1] = True
-        return np.append(target_mask, tower_mask)
+        target_mask = self.target_mask(valid_tower)
+        return np.append(tower_mask, target_mask)
 
     def target_mask(self, tower: int) -> np.ndarray:
         """Get a mask for valid relative actions."""
@@ -209,8 +209,8 @@ class Game(gym.Env):
             int: The tower to move.
             np.ndarray: The relative target to move to.
         """
-        tower = int(action[1] + 1)
-        target = self.relative_actions[int(action[0])]
+        tower = int(action[0] + 1)
+        target = self.relative_actions[int(action[1])]
 
         # check if tower selection is correct
         if not tower == self.current_tower and self.current_tower is not None:
@@ -384,10 +384,10 @@ if __name__ == "__main__":
 
     env = Game(render_mode="human")
     obs, info = env.reset()
-    env.step(np.array([13, 3]))
-    env.step(np.array([9, 1]))
-    env.step(np.array([0, 3]))
-    env.step(np.array([4, 1]))
-    env.step(np.array([0, 3]))
-    env.step(np.array([15, 1]))
+    env.step(np.array([3, 13]))
+    env.step(np.array([1, 9]))
+    env.step(np.array([3, 0]))
+    env.step(np.array([1, 4]))
+    env.step(np.array([3, 0]))
+    env.step(np.array([1, 15]))
     print("Done")

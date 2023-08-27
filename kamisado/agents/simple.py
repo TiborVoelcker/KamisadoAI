@@ -16,7 +16,7 @@ class RandomAgent(Model):
             tower = self.env.np_random.integers(1, 9)
         mask = self.env.target_mask(tower)
         target = self.env.np_random.choice(mask.nonzero()[0])
-        return np.append(target, tower - 1), None
+        return np.append(tower - 1, target), None
 
 
 class LookForWinAgent(Model):
@@ -34,4 +34,4 @@ class LookForWinAgent(Model):
             target = targets[winning][0]
         else:
             target = self.env.np_random.choice(mask.nonzero()[0])
-        return np.append(target, tower - 1), None
+        return np.append(tower - 1, target), None

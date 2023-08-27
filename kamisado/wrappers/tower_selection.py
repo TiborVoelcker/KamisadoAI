@@ -17,6 +17,6 @@ class NoTowerSelection(ActionWrapper):
 
     def action(self, action):
         if self.env.current_tower:
-            action[1] = self.env.current_tower - 1
+            action[0] = self.env.current_tower - 1
 
         return action
