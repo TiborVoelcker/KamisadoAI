@@ -24,16 +24,16 @@ from functools import partial
 from stable_baselines3.ppo import PPO
 
 from kamisado.agents.ppo import train
+from kamisado.agents.simple import LookForWinAgent
 
-model = partial(PPO.load, "kamisado/agents/ppo/model/best_model")
+# model = partial(PPO.load, "kamisado/agents/ppo/model/best_model")
 
 
 if __name__ == "__main__":
     train(
         100000,
-        mask=False,
         tournament=True,
-        tournament_opponent=model,
+        tournament_opponent=LookForWinAgent,
         tower_selection=False,
         reward_action=False,
     )
