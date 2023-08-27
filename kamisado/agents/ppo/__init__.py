@@ -7,8 +7,8 @@ from functools import partial
 from pathlib import Path
 
 from gymnasium import make
-from sb3_contrib.ppo_mask import MaskablePPO as PPO
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
+from stable_baselines3.ppo import PPO
 
 from kamisado.wrappers import wrap
 
@@ -30,7 +30,7 @@ def train(timesteps, **kwargs):
     if file.exists():
         model = PPO.load(file, env=env)
     else:
-        from sb3_contrib.ppo_mask import MlpPolicy
+        from stable_baselines3.ppo import MlpPolicy
 
         model = PPO(MlpPolicy, env=env)
 

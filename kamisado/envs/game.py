@@ -158,21 +158,6 @@ class Game(gym.Env):
 
         return (self.board[tuple(test.T)] != 0).all()
 
-    def action_masks(self):
-        valid_tower = self.current_tower
-        if valid_tower is None:
-            # for the first move, the valid moves depend on the chosen tower
-            # we just allow all possible first moves and hope the model
-            # figures out the rest
-            mask = np.ones(8 + 22, dtype=bool)
-            mask[8::7] = False
-            return mask
-
-        tower_mask = np.zeros(8, dtype=bool)
-        tower_mask[valid_tower - 1] = True
-        target_mask = self.target_mask(valid_tower)
-        return np.append(tower_mask, target_mask)
-
     def target_mask(self, tower: int) -> np.ndarray:
         """Get a mask for valid relative actions."""
         if self.tower_is_blocked(tower):
