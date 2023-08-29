@@ -31,7 +31,7 @@ class LookForWinAgent(Model):
         targets = self.env.relative_actions + tower_coords
         winning = (targets[:, 0] == 0) & mask
         if winning.any():
-            target = targets[winning][0]
+            target = winning.nonzero()[0][0]
         else:
             target = self.env.np_random.choice(mask.nonzero()[0])
         return np.append(tower - 1, target), None
