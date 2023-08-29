@@ -28,6 +28,8 @@ class TournamentWrapper(Wrapper):
             obs, reward, truncated, terminated, info = super().step(action)
             if truncated or terminated:
                 raise UserWarning("The opponent player's starting move was invalid!")
+
+        info["agent_color"] = 1 if self.opponent_color == 0 else 0
         return obs, info
 
     def step(self, action):

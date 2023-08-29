@@ -12,23 +12,23 @@ from stable_baselines3.ppo import PPO
 
 from kamisado.wrappers import wrap
 
-path = Path("kamisado/agents/ppo/model")
-file = path / "best_mode"
+path = Path("kamisado/agents/ppo/model/best_model.zip")
 
 
 def train(timesteps, **kwargs):
     if kwargs.get("tournament_opponent") == "self":
-        if not file.exists():
+        if not path.exists():
             raise UserWarning(
                 "Cannot use `tournament_opponent` 'self', if model does not exist yet!"
             )
-        kwargs["tournament_opponent"] = partial(PPO.load, file)
+        kwargs["tournament_opponent"] = partial(PPO.load, path.parent / path.stem)
 
     env = wrap(make("kamisado/Game-v0"), **kwargs)
     eval_env = wrap(make("kamisado/Game-v0"), **kwargs)
 
-    if file.exists():
-        model = PPO.load(file, env=env)
+    if path.exists():
+        model = PPO.load(path.parent / path.stem, env=env)
+        print("Loaded model")
     else:
         from stable_baselines3.ppo import MlpPolicy
 
@@ -38,7 +38,7 @@ def train(timesteps, **kwargs):
     eval_callback = EvalCallback(
         eval_env,
         callback_on_new_best=callback_on_best,
-        best_model_save_path=path,
+        best_model_save_path=path.parent,
         eval_freq=10000,
         n_eval_episodes=50,
         verbose=1,
