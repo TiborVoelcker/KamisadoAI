@@ -197,9 +197,9 @@ class Game(gym.Env):
         tower = int(action[0] + 1)
         target = self.relative_actions[int(action[1])]
 
-        # check if tower selection is correct
-        if not tower == self.current_tower and self.current_tower is not None:
-            return False, tower, target
+        if self.current_tower is not None:
+            tower = self.current_tower
+
         # check if tower can move to the provided target
         valid_actions = self.valid_targets(tower)
         return (valid_actions == target).all(1).any(), tower, target
