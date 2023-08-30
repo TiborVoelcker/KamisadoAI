@@ -5,11 +5,7 @@ from kamisado.agents.human import HumanAgent
 from kamisado.agents.ppo import path
 from kamisado.wrappers import wrap
 
-env = wrap(
-    make("kamisado/Game-v0", render_mode="human"),
-    tournament_opponent=HumanAgent,
-    reward_action=False,
-)
+env = wrap(make("kamisado/Game-v0", render_mode="human"), tournament_opponent=HumanAgent)
 
 model = PPO.load(path.parent / path.stem, env=env)
 

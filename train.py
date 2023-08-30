@@ -6,8 +6,4 @@ from kamisado.agents.ppo import train
 from kamisado.agents.simple import LookForWinAgent, RandomAgent
 
 if __name__ == "__main__":
-    train(
-        1000000,
-        tournament_opponent=RandomAgent,
-        reward_action=False,
-    )
+    train(1000000, tournament_opponent=RandomAgent)
