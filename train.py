@@ -2,8 +2,17 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 30.08.2023
 """
-from kamisado.agents.ppo import train
-from kamisado.agents.simple import LookForWinAgent, RandomAgent
+import ray
+from ray.rllib.algorithms.ppo import PPO, PPOConfig
+from ray.rllib.policy.policy import PolicySpec
 
-if __name__ == "__main__":
-    train(1000000, tournament_opponent=RandomAgent)
+from kamisado.envs.game import Game
+
+ray.init(local_mode=True)
+
+config = PPOConfig().environment(Game).multi_agent(policies={"main": PolicySpec()})
+
+algo = PPO(config)
+
+while True:
+    print(algo.train())

@@ -2,12 +2,11 @@
   Copyright (c) Tibor Völcker <tibor.voelcker@hotmail.de>
   Created on 09.08.2023
 """
-from typing import TypedDict
-
 import gymnasium as gym
 import numpy as np
 import pygame
 from gymnasium import spaces
+from ray.rllib import MultiAgentEnv
 
 ORANGE = (255, 153, 0)
 BLUE = (0, 0, 255)
@@ -30,7 +29,7 @@ def draw_tower(canvas, tower, coords, radius):
     pygame.draw.circle(canvas, tower, coords, radius * 0.6)
 
 
-class Game(gym.Env):
+class Game(MultiAgentEnv):
     INVALID_ACTION_REWARD = -1000
     WINNING_REWARD = 50
     LOOSING_REWARD = -50
@@ -64,12 +63,15 @@ class Game(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array", "ansi"], "render_fps": 1}
 
-    def __init__(self, render_mode=None, size=5):
-        self.window_size = 512  # The size of the PyGame window
+    def __init__(self, config: dict = {}):
+        super().__init__()
+        self.window_size = config.get("window_size", 512)  # The size of the PyGame window
 
         self.observation_space = spaces.MultiDiscrete([17] * 64 + [9])
 
         self.action_space = spaces.MultiDiscrete([8, 22])
+
+        render_mode = config.get("render_mode")
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -86,7 +88,12 @@ class Game(gym.Env):
         self.font = None
 
     def _get_obs(self):
-        return np.append(self.board.flatten() + 8, self.current_tower if self.current_tower else 0)
+        player = "black" if self.current_player == 0 else "white"
+        return {
+            player: np.append(
+                self.board.flatten() + 8, self.current_tower if self.current_tower else 0
+            )
+        }
 
     def _get_info(self):
         return {"current_player": self.current_player, "board": self.board}
@@ -208,13 +215,14 @@ class Game(gym.Env):
         """Move a tower to a relative target."""
         board = self.board
         coords = self.get_tower_coords(tower)
-        board[*coords] = 0
-        board[*coords + target] = tower
+        board[coords[0], coords[1]] = 0
+        new_coords = coords + target
+        board[new_coords[0], new_coords[1]] = tower
         self.board = board
 
     def color_at_coords(self, coords: list[int] | np.ndarray):
         """Get the board color at specified coordinates."""
-        return self.board_colors[*coords]
+        return self.board_colors[coords[0], coords[1]]
 
     @property
     def is_won(self) -> bool:
